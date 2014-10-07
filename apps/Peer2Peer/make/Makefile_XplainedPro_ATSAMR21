@@ -1,0 +1,100 @@
+##############################################################################
+CONFIG = Debug
+#CONFIG = Release
+
+##############################################################################
+.PHONY: all directory clean size
+
+STACK_PATH = ../../..
+APP_PATH = ..
+
+CC = arm-none-eabi-gcc
+OBJCOPY = arm-none-eabi-objcopy
+SIZE = arm-none-eabi-size
+
+CFLAGS += -W -Wall --std=gnu99 -Os
+CFLAGS += -fdata-sections -ffunction-sections
+CFLAGS += -funsigned-char -funsigned-bitfields
+CFLAGS += -mcpu=cortex-m0plus -mthumb
+CFLAGS += -MD -MP -MT $(CONFIG)/$(*F).o -MF $(CONFIG)/$(@F).d
+
+ifeq ($(CONFIG), Debug)
+  CFLAGS += -g
+endif
+
+LDFLAGS += -mcpu=cortex-m0plus -mthumb
+LDFLAGS += -Wl,--gc-sections
+LDFLAGS += -Wl,--script=../linker/atsamd21j18.ld
+
+INCLUDES += \
+  -I$(STACK_PATH)/hal/atsamd21/inc \
+  -I$(STACK_PATH)/hal/atsamd21/inc/component \
+  -I$(STACK_PATH)/hal/atsamd21/inc/instance \
+  -I$(STACK_PATH)/hal/atsamd21/inc/pio \
+  -I$(STACK_PATH)/phy/at86rf233/inc \
+  -I$(STACK_PATH)/nwk/inc \
+  -I$(STACK_PATH)/sys/inc \
+  -I$(STACK_PATH)/hal/drivers/atsamd21 \
+  -I$(APP_PATH) 
+
+SRCS += \
+  $(STACK_PATH)/hal/atsamd21/src/hal.c \
+  $(STACK_PATH)/hal/atsamd21/src/halPhy.c \
+  $(STACK_PATH)/hal/atsamd21/src/halTimer.c \
+  $(STACK_PATH)/hal/atsamd21/src/halStartup.c \
+  $(STACK_PATH)/phy/at86rf233/src/phy.c \
+  $(STACK_PATH)/nwk/src/nwk.c \
+  $(STACK_PATH)/nwk/src/nwkDataReq.c \
+  $(STACK_PATH)/nwk/src/nwkSecurity.c \
+  $(STACK_PATH)/nwk/src/nwkFrame.c \
+  $(STACK_PATH)/nwk/src/nwkGroup.c \
+  $(STACK_PATH)/nwk/src/nwkRoute.c \
+  $(STACK_PATH)/nwk/src/nwkRouteDiscovery.c \
+  $(STACK_PATH)/nwk/src/nwkRx.c \
+  $(STACK_PATH)/nwk/src/nwkTx.c \
+  $(STACK_PATH)/sys/src/sys.c \
+  $(STACK_PATH)/sys/src/sysTimer.c \
+  $(STACK_PATH)/sys/src/sysEncrypt.c \
+  $(STACK_PATH)/hal/drivers/atsamd21/halUart.c \
+  $(APP_PATH)/fcc_test_dut.c 
+
+DEFINES += \
+  -DPHY_AT86RF233 \
+  -DHAL_ATSAMD21J18 \
+  -DPLATFORM_XPLAINED_PRO_SAMR21 \
+  -DF_CPU=8000000 
+
+CFLAGS += $(INCLUDES) $(DEFINES)
+
+OBJS = $(addprefix $(CONFIG)/, $(notdir %/$(subst .c,.o, $(SRCS))))
+
+all: directory $(CONFIG)/Peer2Peer.elf $(CONFIG)/Peer2Peer.hex $(CONFIG)/Peer2Peer.bin size
+
+$(CONFIG)/Peer2Peer.elf: $(OBJS)
+	@echo LD $@
+	@$(CC) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+
+$(CONFIG)/Peer2Peer.hex: $(CONFIG)/Peer2Peer.elf
+	@echo OBJCOPY $@
+	@$(OBJCOPY) -O ihex -R .eeprom $^ $@
+
+$(CONFIG)/Peer2Peer.bin: $(CONFIG)/Peer2Peer.elf
+	@echo OBJCOPY $@
+	@$(OBJCOPY) -O binary -R .eeprom $^ $@
+
+%.o:
+	@echo CC $@
+	@$(CC) $(CFLAGS) $(filter %/$(subst .o,.c,$(notdir $@)), $(SRCS)) -c -o $@
+
+directory:
+	@gmkdir -p $(CONFIG)
+
+size: $(CONFIG)/Peer2Peer.elf
+	@echo size:
+	@$(SIZE) -t $^
+
+clean:
+	@echo clean
+	@-rm -rf $(CONFIG)
+
+-include $(wildcard $(CONFIG)/*.d)
