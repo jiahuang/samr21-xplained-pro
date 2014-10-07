@@ -535,7 +535,12 @@ static void APP_TaskHandler(void)
 
 /*************************************************************************//**
 *****************************************************************************/
-  int testMain = 0;
+void delay_s(uint32_t time) {
+  for (uint32_t i = 0; i < 100*time; i++) {
+    // this delay is in us 
+    HAL_TimerDelay(10000);
+  }
+}
 
 int main(void)
 {
@@ -545,14 +550,9 @@ int main(void)
   while (1)
   {
   	HAL_LedOn(0);
-  	for (int i = 0; i < 100; i++) {
-	  	HAL_TimerDelay(10000);
-  	}
+    delay_s(1);
   	HAL_LedOff(0);
-  	for (int i = 0; i < 100; i++) {
-	  	HAL_TimerDelay(10000);
-  	}
-  	testMain++;
+  	delay_s(1);
     // SYS_TaskHandler();
     // HAL_UartTaskHandler();
     // APP_TaskHandler();
