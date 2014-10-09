@@ -87,7 +87,7 @@ $(CONFIG)/Peer2Peer.bin: $(CONFIG)/Peer2Peer.elf
 	@$(CC) $(CFLAGS) $(filter %/$(subst .o,.c,$(notdir $@)), $(SRCS)) -c -o $@
 
 directory:
-	@gmkdir -p $(CONFIG)
+	@mkdir -p $(CONFIG)
 
 size: $(CONFIG)/Peer2Peer.elf
 	@echo size:
